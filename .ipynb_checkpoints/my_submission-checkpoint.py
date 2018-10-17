@@ -1,5 +1,7 @@
 
 import numpy as np
+from tensorflow import keras
+import keras.backend as K
 
 # Defining function to save the dataset to be used in Assignment #2 in Unit IFN680 @ QUT
 def save_mnist_dataset():
@@ -66,5 +68,99 @@ def preprocess_mnist_dataset(x_train, y_train, x_test, y_test):
     
     # Returns the data to be used in training (80% of the digits [2,3,4,5,6,7]) and testing (the rest).
     return data_train, target_train, final_test_data, final_test_target
+
+
+def contrastive_loss_function(y_true, y_pred):
+    
+    # The margin m > 0 determines how far the embeddings of a negative pair should be pushed apart.
+    m = 2 # Might need to be changed and evaluated for what value the siamese network performs best.
+    
+    # Calclulates the euclidian distance
+    e_dist = K.sqrt(K.sum(K.square(y_pred - y_true), axis=-1))
+    
+    return (abs(y_true - 1)) * ((e_dist**2) / 2) + (y_true * ((K.maximum(float(0), (m - e_dist))**2) / 2))
+    
+    
+    '''
+    # If y_true == 0 it denotes that the images are deemed from the same equivlaence class. A positive pair. Hence, one function for contrastive loss distance is used.
+    if (y_true == 0):
+        return ((e_dist**2) / 2)
+    
+    # If y_true == 1 then the pair of images is a negative pair, and another function for contrastive loss distance is to be used.
+    elif (y_true == 1):
+        return ((K.maximum(0, (m - e_dist))**2) / 2)
+    
+    else:
+        print("Contrastive loss function does not apply to either y_true == 0 nor y_true == 1")
+        print("y_true: {0}", y_true)
+        return
+    '''
+    
+def build_CNN(x_train, y_train, x_test, y_test):
+    '''
+    Build, train and evaluate a CNN on the mnist dataset
+    
+    '''
+    # Code adapted from practical 7 when training a CNN
+    img_rows, img_cols = x_train.shape[1:3]
+    num_classes = len(np.unique(y_test))
+    print("num_classes: ", num_classes)
+    print(y_train)
+    
+    # reshape the input arrays to 4D (batch_size, rows, columns, channels)
+    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+    input_shape = (img_rows, img_cols, 1)
+    batch_size = 128
+    epochs = 12
+
+    '''
+    epochs = 3 # debugging code
+    x_train = x_train[:8000]
+    y_train = y_train[:8000]
+    '''
+
+
+    # convert to float32 and rescale between 0 and 1
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255
+    x_test /= 255
+    print('x_train shape:', x_train.shape)
+    print(x_train.shape[0], 'train samples')
+    print(x_test.shape[0], 'test samples')
+
+    # convert class vectors to binary class matrices (aka "sparse coding" or "one hot")
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_test = keras.utils.to_categorical(y_test, num_classes)
+    
+    
+    model = keras.models.Sequential()
+    model.add(keras.layers.Conv2D(32, kernel_size=(3, 3),
+                     activation='relu',
+                     input_shape=input_shape))
+    model.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    model.add(keras.layers.Dropout(0.25))
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(128, activation='relu'))
+    model.add(keras.layers.Dropout(0.5))
+    model.add(keras.layers.Dense(num_classes, activation='softmax'))
+    
+    model.compile(loss=contrastive_loss_function,
+                  optimizer=keras.optimizers.Adadelta(),
+                  metrics=['accuracy'])
+    
+    model.fit(x_train, y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              verbose=1,
+              validation_data=(x_test, y_test))
+              
+    score = model.evaluate(x_test, y_test, verbose=0)
+    
+    print('Test loss:', score[0])
+    print('Test accuracy:', score[1])
+    return
 
 

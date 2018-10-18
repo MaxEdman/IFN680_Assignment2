@@ -102,10 +102,69 @@ def build_CNN(x_train, y_train, x_test, y_test):
     
     '''
     # Code adapted from practical 7 when training a CNN
+    
     img_rows, img_cols = x_train.shape[1:3]
     num_classes = len(np.unique(y_test))
     print("num_classes: ", num_classes)
-    print(y_train)
+    
+    # reshape the input arrays to 4D (batch_size, rows, columns, channels)
+    x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
+    x_test = x_test.reshape(x_test.shape[0], img_rows, img_cols, 1)
+    input_shape = (img_rows, img_cols, 1)
+    batch_size = 128
+    epochs = 12
+
+    #    epochs = 3 # debugging code
+    #    x_train = x_train[:8000]
+    #    y_train = y_train[:8000]
+
+
+    # convert to float32 and rescale between 0 and 1
+    x_train = x_train.astype('float32')
+    x_test = x_test.astype('float32')
+    x_train /= 255
+    x_test /= 255
+    print('x_train shape:', x_train.shape)
+    print(x_train.shape[0], 'train samples')
+    print(x_test.shape[0], 'test samples')
+    #
+    # convert class vectors to binary class matrices (aka "sparse coding" or "one hot")
+    y_train = keras.utils.to_categorical(y_train, num_classes)
+    y_test = keras.utils.to_categorical(y_test, num_classes)
+    #
+    model = keras.models.Sequential()
+    model.add(keras.layers.Conv2D(32, kernel_size=(3, 3),
+                     activation='relu',
+                     input_shape=input_shape))
+    model.add(keras.layers.Conv2D(64, (3, 3), activation='relu'))
+    model.add(keras.layers.MaxPooling2D(pool_size=(2, 2)))
+    model.add(keras.layers.Dropout(0.25))
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(128, activation='relu'))
+    model.add(keras.layers.Dropout(0.5))
+    model.add(keras.layers.Dense(num_classes, activation='softmax'))
+    
+    model.compile(loss=keras.losses.categorical_crossentropy,
+                  optimizer=keras.optimizers.Adadelta(),
+                  metrics=['accuracy'])
+    
+    print("x_test shape: ", x_test.shape)
+    print("y_test shape: ", y_test.shape)
+    model.fit(x_train, y_train,
+              batch_size=batch_size,
+              epochs=epochs,
+              verbose=1,
+              validation_data=(x_test, y_test))
+              
+    score = model.evaluate(x_test, y_test, verbose=0)
+    
+    print('Test loss:', score[0])
+    print('Test accuracy:', score[1])
+    
+    '''
+    img_rows, img_cols = x_train.shape[1:3]
+    num_classes = len(np.unique(y_test))
+    print("num_classes: ", num_classes)
     
     # reshape the input arrays to 4D (batch_size, rows, columns, channels)
     x_train = x_train.reshape(x_train.shape[0], img_rows, img_cols, 1)
@@ -115,9 +174,9 @@ def build_CNN(x_train, y_train, x_test, y_test):
     epochs = 12
 
     '''
-    epochs = 3 # debugging code
-    x_train = x_train[:8000]
-    y_train = y_train[:8000]
+    #epochs = 3 # debugging code
+    #x_train = x_train[:8000]
+    #y_train = y_train[:8000]
     '''
 
 
@@ -126,7 +185,6 @@ def build_CNN(x_train, y_train, x_test, y_test):
     x_test = x_test.astype('float32')
     x_train /= 255
     x_test /= 255
-    print('x_train shape:', x_train.shape)
     print(x_train.shape[0], 'train samples')
     print(x_test.shape[0], 'test samples')
 
@@ -151,6 +209,9 @@ def build_CNN(x_train, y_train, x_test, y_test):
                   optimizer=keras.optimizers.Adadelta(),
                   metrics=['accuracy'])
     
+    print("x_test shape: ", x_test.shape)
+    print("y_test shape: ", y_test.shape)
+    
     model.fit(x_train, y_train,
               batch_size=batch_size,
               epochs=epochs,
@@ -162,5 +223,9 @@ def build_CNN(x_train, y_train, x_test, y_test):
     print('Test loss:', score[0])
     print('Test accuracy:', score[1])
     return
+    '''
 
-
+def siamese_network(x_train, y_train, x_test, y_test):
+    
+    # Builds the siamese network
+    shared_network = build_CNN(x_train, y_train, x_test, y_test)

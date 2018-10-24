@@ -177,8 +177,10 @@ def siamese_network():
     x_train = reshape_convert_input_data(x_train)
     x_test = reshape_convert_input_data(x_test)
     
-    x_train = x_train[:8000]
-    y_train = y_train[:8000]
+    
+    # For debugging
+    #x_train = x_train[:8000]
+    #y_train = y_train[:8000]
     
     print("x_train: ", x_train.shape)
     print("y_train: ", y_train.shape)

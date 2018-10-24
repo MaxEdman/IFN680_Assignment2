@@ -427,8 +427,8 @@ def siamese_network(x_train, y_train, x_test, y_test):
               epochs=epochs_siamese,
               validation_data=([te1_pairs[:, 0], te1_pairs[:, 1]], te1_y))
     
-    
     '''
+    
     model.fit([tr2_pairs[:, 0], tr2_pairs[:, 1]], tr2_y,
               batch_size=128,
               epochs=epochs_siamese,
@@ -440,7 +440,7 @@ def siamese_network(x_train, y_train, x_test, y_test):
     
     # How do we test the accuracy on the model ? The Keras API does not say anything about it.
     #score = model.evaluate(x=te1_pairs, y=te1_y, batch_size=128, verbose=1)
-    score = model.evaluate(x=[tr2_pairs[:, 0], tr2_pairs[:, 1]], y=te2_y, batch_size=128, verbose=1)
+    #score = model.evaluate(x=te2_pairs, y=te2_y, batch_size=128, verbose=1)
     #score = model.evaluate(input_test_pairs, test_labels, verbose=True)
     
     #print('Test loss for Siamese network:', score[0])

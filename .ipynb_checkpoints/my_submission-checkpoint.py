@@ -13,12 +13,12 @@ from keras.models import Model
 
 # Defining a set of static variables that are used throughout the defined functions.
 batch_size = 128
-epochs_siamese = 20
+epochs_siamese = 10
 # In the MNIST set the number of classes is 10.
 #num_train_classes = 6
 num_classes = 10
 
-
+# Defining ranges with for different test sets based on the target label of the different pictures.
 set1_digits = [2,3,4,5,6,7]
 set2_digits = [0,1,8,9]
 set3_digits = [0,1,2,3,4,5,6,7,8,9]
@@ -51,6 +51,7 @@ def load_mnist_dataset():
         y_test = npzfile['y_test']
     
     return x_train, y_train, x_test, y_test
+
 
 def preprocess_mnist_dataset(x_train, y_train, x_test, y_test):
     '''
@@ -316,30 +317,18 @@ def siamese_network():
     # This is where we need to use the negative and positive pairs from the images based on the sequential classes as input along with the labels.
     # Number of epochs is defined in the beginning of the document as a static variable.
     
+
+
+
     
     
-def create_pairs(x, digit_indices):
+def create_pairs_set(x, digit_indices, test_index):
     '''Positive and negative pair creation.
     Alternates between positive and negative pairs.
-    '''
-    pairs = []
-    labels = []
     
-    n = min([len(digit_indices[d]) for d in range(num_classes)]) - 1
-    for d in range(num_classes):
-        for i in range(n):
-            z1, z2 = digit_indices[d][i], digit_indices[d][i + 1]
-            pairs += [[x[z1], x[z2]]]
-            inc = random.randrange(1, num_classes)
-            dn = (d + inc) % num_classes
-            z1, z2 = digit_indices[d][i], digit_indices[dn][i]
-            pairs += [[x[z1], x[z2]]]
-            labels += [1, 0]
-    return np.array(pairs), np.array(labels)
-
-
-
-def create_pairs_set(x, digit_indices, test_index):
+    Creates an array of positive and negative pairs combined with their labels. If the two images used as input       is considered to be from the same eqivalence class then they are considered a positive pair. If they are not,     they are considered a negative pair.
+    
+    '''
     
     # Create empty list of pairs and labels to be appended
     pairs = []
@@ -386,34 +375,10 @@ def create_pairs_set(x, digit_indices, test_index):
             labels += [1, 0]
     
     return np.array(pairs), np.array(labels)
-    
-def create_neg_pos_pairs(input_data, indices):
-    '''
-    Creates an array of positive and negative pairs combined with their labels. If the two images used as input is considered to be from the same eqivalence class then they are considered a positive pair. If they are not, they are considered a negative pair.
-    '''
-    import random
-    
-    pairs = []
-    labels = []
-    n = min([len(indices[d]) for d in range(len(indices))]) - 1
-    for d in range(len(indices)):
-        for i in range(n):
-            j1 = indices[d][i]
-            j2 = indices[d][i + 1]
-            pairs.append([[input_data[j1], input_data[j2]]])
-            
-            # Don't know if this should be in the range 2-8 (the numbers that are in the set for training) or if it should be the length of indices.
-            inc = random.randrange(len(indices))
-            dn = (d + inc) % len(indices)
 
-            k1 = indices[d][i]
-            k2 = indices[dn][i]
-            pairs += [[input_data[k1], input_data[k2]]]
-            
-            labels += [1, 0]
-            
-    return np.array(pairs), np.array(labels)
-    
+
+
+### For evaluating the prediction accuracy of the model.    
 def compute_accuracy(y_true, y_pred):
     '''Compute classification accuracy with a fixed threshold on distances.
     '''

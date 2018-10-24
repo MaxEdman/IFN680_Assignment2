@@ -1,0 +1,10 @@
+
+What kind of data should we present in graphs and tables? What variables to change basically?
+- Depending on epochs?
+- Depending on margin in contrastive loss function?
+- Depending on batch size?
+- Depending on time?
+- What more?
+
+Is the contrastive loss function correctly implemented? 
+The one found online increases the accuracy, but the one that is defined in the assignment outline always ends up at 50%.

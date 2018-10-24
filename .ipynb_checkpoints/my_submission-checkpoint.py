@@ -1,12 +1,18 @@
 
 import numpy as np
 from tensorflow import keras
+
+# Imports required modules from the Keras Functional API
+import keras
 import keras.backend as K
+from keras.layers import Input, Dense, Flatten, Dropout
+from keras.models import Model
+
 
 # Defining a set of static variables that are used throughout the defined functions.
 batch_size = 128
-epochs_cnn = 2
-epochs_siamese = 2
+epochs_cnn = 1
+epochs_siamese = 1
 # In the MNIST set the number of classes is 10.
 num_classes = 10
 
@@ -137,7 +143,6 @@ def reshape_convert_input_data(x_train, x_test):
     x_train /= 255
     x_test /= 255
     
-    
     return x_train, x_test
     
     
@@ -213,58 +218,233 @@ def siamese_network(x_train, y_train, x_test, y_test):
     Main function to be run for the assignment.
     '''
     
-    # Imports required modules from the Keras Functional API
-    import keras
-    from keras.layers import Input, Dense
-    from keras.models import Model
     
+    
+    
+    (x1_train, y1_train), (x1_test, y1_test) = load_mnist_dataset()
+    # reshape the input arrays to 4D (batch_size, rows, columns, channels)
+    img_rows, img_cols = x1_train.shape[1:3]
+    x1_train = x1_train.reshape(x1_train.shape[0], img_rows, img_cols, 1)
+    x1_test = x1_test.reshape(x1_test.shape[0], img_rows, img_cols, 1)
+    
+    print("x1_train: ", x1_train.shape)
+    print("y1_train: ", y1_train.shape)
+    print("x1_test: ", x1_test.shape)
+    print("y1_test: ", y1_test.shape)
+    
+    
+    
+    (x2_train, y2_train), (x2_test, y2_test) = keras.datasets.mnist.load_data()
+    img_rows, img_cols = x2_train.shape[1:3]
+    x2_train = x2_train.reshape(x2_train.shape[0], img_rows, img_cols, 1)
+    x2_test = x2_test.reshape(x2_test.shape[0], img_rows, img_cols, 1)
+    
+    print("x2_train: ", x2_train.shape)
+    print("y2_train: ", y2_train.shape)
+    print("x2_test: ", x2_test.shape)
+    print("y2_test: ", y2_test.shape)
+    
+    
+    
+    
+    
+    x1_train = x1_train.astype('float32')
+    x1_test = x1_test.astype('float32')
+    x1_train /= 255
+    x1_test /= 255
+    input_shape1 = x1_train.shape[1:]
+    
+    
+    x2_train = x2_train.astype('float32')
+    x2_test = x2_test.astype('float32')
+    x2_train /= 255
+    x2_test /= 255
+    input_shape2 = x2_train.shape[1:]
+    
+    
+    # create training positive and negative pairs
+    digit_indices1 = [np.where(y1_train == i)[0] for i in range(2,8)]
+    print("digit_indices1.len: ", len(digit_indices1))
+    print("range(num_classes): ", range(2,8))
+    tr1_pairs, tr1_y = create_neg_pos_pairs(x1_train, digit_indices1)
+    #tr_pairs, tr_y = create_neg_pos_pairs(x_train, digit_indices)
+
+    digit_indices1 = [np.where(y1_test == i)[0] for i in range(num_classes)]
+    #print("digit_indices 2: ", digit_indices)
+    te1_pairs, te1_y = create_pairs(x1_test, digit_indices1)
+    #te_pairs, te_y = create_neg_pos_pairs(x_test, digit_indices)
+    
+    
+    # create training+test positive and negative pairs
+    digit_indices2 = [np.where(y2_train == i)[0] for i in range(num_classes)]
+    print("digit_indices2: ", len(digit_indices2))
+    #print("digit_indices: ", digit_indices)
+    tr2_pairs, tr2_y = create_pairs(x2_train, digit_indices2)
+    #tr_pairs, tr_y = create_neg_pos_pairs(x_train, digit_indices)
+
+    digit_indices2 = [np.where(y2_test == i)[0] for i in range(num_classes)]
+    #print("digit_indices 2: ", digit_indices)
+    te2_pairs, te2_y = create_pairs(x2_test, digit_indices2)
+    #te_pairs, te_y = create_neg_pos_pairs(x_test, digit_indices)
+    
+    
+    
+    print("tr1_pairs: ", tr1_pairs.shape)
+    print("tr1_y: ", tr1_y.shape)
+    print("te1_pairs: ", te1_pairs.shape)
+    print("te1_y: ", te1_y.shape)
+    
+    print("tr2_pairs: ", tr2_pairs.shape)
+    print("tr2_y: ", tr2_y.shape)
+    print("te2_pairs: ", te2_pairs.shape)
+    print("te2_y: ", te2_y.shape)
+    
+    
+    '''
+    
+    indices = [np.where(y_train == i)[0] for i in range(num_classes)]
+    input_train_pairs, train_labels = create_pairs(x_test, indices)
+    #input_train_pairs, train_labels = create_neg_pos_pairs(x_train, indices)
+    
+    indices = [np.where(y_test == i)[0] for i in range(num_classes)]
+    input_test_pairs, test_labels = create_pairs(x_test, indices)
+    #input_test_pairs, test_labels = create_neg_pos_pairs(x_test, indices)
+    '''
+    '''
+    # reshape the input arrays to 4D (batch_size, rows, columns, channels)
+    pairs_train, label_train = reshape_convert_input_data(x_train, y_train)
+    pairs_test, label_test = reshape_convert_input_data(x_test, y_test)
+    '''
+    
+    '''
     # Use a CNN network as the shared network.
     cnn_network_model = build_CNN(x_train, y_train, x_test, y_test)
     
-    # reshape the input arrays to 4D (batch_size, rows, columns, channels)
-    x_train, x_test = reshape_convert_input_data(x_train, x_test)
+    base_network = create_simplistic_base_network(input_shape)
     
     print("x_train.shape[1:]: ", x_train.shape[1:])
+    input_shape = x_train.shape[1:]
 
     # Initiates inputs with the same amount of slots to keep the image arrays sequences to be used as input data when processing the inputs. 
-    image_vector_shape_a = Input(shape=x_train.shape[1:])
-    image_vector_shape_b = Input(shape=x_train.shape[1:])
+    image_vector_shape_a = Input(shape=input_shape)
+    image_vector_shape_b = Input(shape=input_shape)
+    
+    print("input_shape: ", input_shape)
+    print("image_vector_shape_a:", image_vector_shape_a)
+    print("cnn_network_model:", cnn_network_model)
     
     # The CNN network model will be shared including weights
-    output_cnn_a = cnn_network_model(image_vector_shape_a)
-    output_cnn_b = cnn_network_model(image_vector_shape_b)
+    #output_cnn_a = cnn_network_model(image_vector_shape_a)
+    #output_cnn_b = cnn_network_model(image_vector_shape_b)
+    output_cnn_a = base_network(image_vector_shape_a)
+    output_cnn_b = base_network(image_vector_shape_b)
+    
+    
+    
+    '''
+    
+
+    print("input_shape1:", input_shape1)
+    print("input_shape2:", input_shape2)
+    
+    # Use a CNN network as the shared network.
+    #cnn_network_model = build_CNN(x_train, y_train, x_test, y_test)
+    #cnn_network_model1 = build_CNN(x1_train, y1_train, x1_test, y1_test)
+    cnn_network_model2 = build_CNN(x2_train, y2_train, x2_test, y2_test)
+    
+    
+    # network definition
+    #base_network1 = create_base_network(input_shape1)
+    #base_network2 = create_base_network(input_shape2)
+    
+    input_shape_test = (img_rows, img_cols, 1)
+    
+    #input_a = Input(shape=input_shape)
+    #input_b = Input(shape=input_shape)
+    #image_vector_shape_a = Input(shape=input_shape1)
+    #image_vector_shape_b = Input(shape=input_shape1)
+    image_vector_shape_a = Input(shape=input_shape_test)
+    image_vector_shape_b = Input(shape=input_shape_test)
+    
+    print("image_vector_shape_a:", image_vector_shape_a)
+    print("image_vector_shape_a:", image_vector_shape_b)
+    #print("base_network:", base_network)
+
+    # because we re-use the same instance `base_network`, the weights of the network will be shared across the two branches
+    #output_cnn_a = cnn_network_model(image_vector_shape_a)
+    #output_cnn_b = cnn_network_model(image_vector_shape_b)
+    
+    output_cnn_a = cnn_network_model2(image_vector_shape_a)
+    output_cnn_b = cnn_network_model2(image_vector_shape_b)
+    
+    #output_cnn_a = base_network1(image_vector_shape_b)
+    #output_cnn_b = base_network1(image_vector_shape_b)
+    
+    
+    
+    
+    
+    
     
     # Concatenates the two output vectors into one.
     merged_output = keras.layers.concatenate([output_cnn_a, output_cnn_b])
     
     # And add a logistic regression on top
     # WHY DO WE DO THIS? AAAH. DON'T GET IT!
-    predictions = Dense(1, activation='sigmoid')(merged_vector)
+    predictions = Dense(1, activation='sigmoid')(merged_output)
     
     # We define a trainable model linking the two different image inputs to the predictions
     model = Model(inputs=[image_vector_shape_a, image_vector_shape_b], outputs=predictions)
     
-    # The loss function here should be updated to the contrastive loss function instead.
+    # 
     model.compile(optimizer='rmsprop',
-                  loss='binary_crossentropy',
-                  metrics=['accuracy'])
+                  loss=contrastive_loss_function)
     
     
-    indices = [np.where(y_train == i)[0] for i in range(num_classes)]
-    input_train_pairs, train_labels = create_neg_pos_pairs(x_train, indices)
+    print("tr1_pairs: ", tr1_pairs.shape)
+    print("tr1_y: ", tr1_y.shape)
+    print("te1_pairs: ", te1_pairs.shape)
+    print("te1_y: ", te1_y.shape)
     
-    indices = [np.where(y_train == i)[0] for i in range(num_classes)]
-    input_test_pairs, test_labels = create_neg_pos_pairs(x_test, indices)
+    print("tr2_pairs: ", tr2_pairs.shape)
+    print("tr2_y: ", tr2_y.shape)
+    print("te2_pairs: ", te2_pairs.shape)
+    print("te2_y: ", te2_y.shape)
+    
     
     # This is where we need to use the negative and positive pairs from the images based on the sequential classes as input along with the labels.
     # Number of epochs is defined in the beginning of the document as a static variable.
-    model.fit([input_train_pairs[:,0], input_train_pairs[:,1]], train_labels, epochs=epochs_siamese)
+    
+    '''
+    model.fit([input_train_pairs[:,0], 
+               input_train_pairs[:,1]], 
+              train_labels,
+              epochs=epochs_siamese)
+    
+    
+    model.fit([tr1_pairs[:, 0], tr1_pairs[:, 1]], tr1_y,
+              batch_size=128,
+              epochs=epochs_siamese,
+              validation_data=([te1_pairs[:, 0], te1_pairs[:, 1]], te1_y))
+    
+    '''
+    
+    model.fit([tr2_pairs[:, 0], tr2_pairs[:, 1]], tr2_y,
+              batch_size=128,
+              epochs=epochs_siamese,
+              validation_data=([te2_pairs[:, 0], te2_pairs[:, 1]], te2_y))
+    
+    
+    
+    
     
     # How do we test the accuracy on the model ? The Keras API does not say anything about it.
-    score = model.evaluate(input_test_pairs, test_labels, verbose=True)
+    #score = model.evaluate(x=te1_pairs, y=te1_y, batch_size=128, verbose=1)
+    #score = model.evaluate(x=te2_pairs, y=te2_y, batch_size=128, verbose=1)
+    #score = model.evaluate(input_test_pairs, test_labels, verbose=True)
     
-    print('Test loss for Siamese network:', score[0])
-    print('Test accuracy for Siamese network:', score[1])
+    #print('Test loss for Siamese network:', score[0])
+    #print('Test accuracy for Siamese network:', score[1])
     
     
     
@@ -272,17 +452,20 @@ def create_neg_pos_pairs(input_data, indices):
     '''
     This function needs to be further understood. 
     '''
+    import random
+    
     pairs = []
     labels = []
-    n = min([len(indices[d]) for d in range(num_classes)]) - 1
-    for d in range(num_classes):
+    n = min([len(indices[d]) for d in range(len(indices))]) - 1
+    for d in range(len(indices)):
         for i in range(n):
             j1 = indices[d][i]
             j2 = indices[d][i + 1]
             pairs.append([[input_data[j1], input_data[j2]]])
             
-            inc = random.randrange(1, num_classes)
-            dn = (d + inc) % num_classes
+            # Don't know if this should be in the range 2-8 (the numbers that are in the set for training) or if it should be the length of indices.
+            inc = random.randrange(len(indices))
+            dn = (d + inc) % len(indices)
 
             k1 = indices[d][i]
             k2 = indices[dn][i]
@@ -292,8 +475,67 @@ def create_neg_pos_pairs(input_data, indices):
             
     return np.array(pairs), np.array(labels)
     
-    return x_train_pairs, labels
+    #return x_train_pairs, labels
     '''
         Creates an array of positive and negative pairs combined with their labels. If the two images used as input is considered to be from the same eqivalence class then they are considered a positive pair. If they are not, they are considered a negative pair.
     '''
     
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def create_simplistic_base_network(input_shape):
+    '''
+    Base network to be shared (eq. to feature extraction).
+    '''
+    seq = keras.models.Sequential()
+    seq.add(keras.layers.Dense(128, input_shape=input_shape, activation='relu'))
+    seq.add(keras.layers.Dropout(0.1))
+    seq.add(keras.layers.Dense(128, activation='relu'))
+    seq.add(keras.layers.Dropout(0.1))
+    seq.add(keras.layers.Dense(128, activation='relu'))
+    return seq
+    # . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+    
+def create_base_network(input_shape):
+    '''Base network to be shared (eq. to feature extraction).
+    '''
+
+    _input = Input(shape=input_shape)
+    x = Flatten()(_input)
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = Dense(128, activation='relu')(x)
+    x = Dropout(0.1)(x)
+    x = Dense(128, activation='relu')(x)
+    return Model(_input, x)
+    
+def create_pairs(x, digit_indices):
+    '''Positive and negative pair creation.
+    Alternates between positive and negative pairs.
+    '''
+    pairs = []
+    labels = []
+    import random
+    n = min([len(digit_indices[d]) for d in range(num_classes)]) - 1
+    for d in range(num_classes):
+        for i in range(n):
+            z1, z2 = digit_indices[d][i], digit_indices[d][i + 1]
+            pairs += [[x[z1], x[z2]]]
+            inc = random.randrange(1, num_classes)
+            dn = (d + inc) % num_classes
+            z1, z2 = digit_indices[d][i], digit_indices[dn][i]
+            pairs += [[x[z1], x[z2]]]
+            labels += [1, 0]
+    return np.array(pairs), np.array(labels)

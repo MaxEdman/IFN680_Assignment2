@@ -13,12 +13,15 @@ from keras.models import Model
 
 # Defining a set of static variables that are used throughout the defined functions.
 batch_size = 128
-epochs_siamese = 1
+epochs_siamese = 20
 # In the MNIST set the number of classes is 10.
 #num_train_classes = 6
 num_classes = 10
 
-train_digits = [2,3,4,5,6,7]
+
+set1_digits = [2,3,4,5,6,7]
+set2_digits = [0,1,8,9]
+set3_digits = [0,1,2,3,4,5,6,7,8,9]
 
 
 
@@ -117,7 +120,22 @@ def contrastive_loss_function(y_true, y_pred):
     e_dist = euclidean_distance((y_pred, y_true))
     
     return (abs(y_true - 1)) * ((e_dist**2) / 2) + (y_true * ((K.maximum(float(0), (m - e_dist))**2) / 2))
+
+
+def contrastive_loss(y_true, y_pred):
+    '''
+    Contrastive loss 
+    '''
+    m = 2 # margin
+    euc_dist = euclidean_distance((y_pred, y_true))
     
+    #sqaure_pred = K.square(euc_dist)/2
+    sqaure_pred = K.square(y_pred)
+    
+    #margin_square = K.square(K.maximum(float(0), m - euc_dist))/2
+    margin_square = K.square(K.maximum(m - y_pred, 0))
+    return K.mean(y_true * sqaure_pred + (1 - y_true) * margin_square)
+    #return K.mean(abs(y_true - 1) * sqaure_pred + (y_true * margin_square))
     
     
 def reshape_convert_input_data(input_data):
@@ -126,6 +144,7 @@ def reshape_convert_input_data(input_data):
     img_rows, img_cols = input_data.shape[1:3]
     
     # reshape the input arrays to 4D (batch_size, rows, columns, channels)
+    #input_data = input_data.reshape(input_data.shape[0], img_rows, img_cols)
     input_data = input_data.reshape(input_data.shape[0], img_rows, img_cols, 1)
     
     # convert to float32 and rescale between 0 and 1.
@@ -170,22 +189,28 @@ def siamese_network():
     # Loads the dataset.
     x_train, y_train, x_test, y_test = load_mnist_dataset()
     #mnist.load_data()
-    (x_train, y_train), (x_test, y_test), (input_testset2, target_testset2), (input_testset3, target_testset3) = preprocess_mnist_dataset(x_train, y_train, x_test, y_test)
+    (input_trainset, target_trainset), (input_testset1, target_testset1), (input_testset2, target_testset2), (input_testset3, target_testset3) = preprocess_mnist_dataset(x_train, y_train, x_test, y_test)
     
     # reshape the input arrays to 4D (batch_size, rows, columns, channels)
     # reshape the input arrays to 4D (batch_size, rows, columns, channels)
-    x_train = reshape_convert_input_data(x_train)
-    x_test = reshape_convert_input_data(x_test)
+    input_trainset = reshape_convert_input_data(input_trainset)
+    input_testset1 = reshape_convert_input_data(input_testset1)
+    input_testset2 = reshape_convert_input_data(input_testset2)
+    input_testset3 = reshape_convert_input_data(input_testset3)
     
     
     # For debugging
     #x_train = x_train[:8000]
     #y_train = y_train[:8000]
     
-    print("x_train: ", x_train.shape)
-    print("y_train: ", y_train.shape)
-    print("x_test: ", x_test.shape)
-    print("y_test: ", y_test.shape)
+    print("input_trainset: ", input_trainset.shape)
+    print("target_trainset: ", target_trainset.shape)
+    print("input_testset1: ", input_testset1.shape)
+    print("target_testset1: ", target_testset1.shape)
+    print("input_testset2: ", input_testset2.shape)
+    print("target_testset2: ", target_testset2.shape)
+    print("input_testset3: ", input_testset3.shape)
+    print("target_testset3: ", target_testset3.shape)
     
     
     '''
@@ -205,46 +230,23 @@ def siamese_network():
     
     
     
-    '''
-    print("x2_train: ", x2_train.shape)
-    print("y2_train: ", y2_train.shape)
-    print("x2_test: ", x2_test.shape)
-    print("y2_test: ", y2_test.shape)
-    
-    print("tr1_pairs: ", tr1_pairs.shape)
-    print("tr1_y: ", tr1_y.shape)
-    print("te1_pairs: ", te1_pairs.shape)
-    print("te1_y: ", te1_y.shape)
-    
-    print("tr2_pairs: ", tr2_pairs.shape)
-    print("tr2_y: ", tr2_y.shape)
-    print("te2_pairs: ", te2_pairs.shape)
-    print("te2_y: ", te2_y.shape)
-    
-
-    print("input_shape1:", input_shape1)
-    print("input_shape2:", input_shape2)
-    '''
-    '''
-    # create training+test positive and negative pairs
-    digit_indices = [np.where(y_train == i)[0] for i in range(num_classes)]
-    tr_pairs, tr_y = create_pairs(x_train, digit_indices)
-
-    digit_indices = [np.where(y_test == i)[0] for i in range(num_classes)]
-    te_pairs, te_y = create_pairs(x_test, digit_indices)
-    '''
-    
-    print("train_digits", train_digits)
+    print("set1_digits", set1_digits)
     # create training positive and negative pairs
-    digit_indices = [np.where(y_train == i)[0] for i in train_digits]
-    tr_pairs, tr_y = create_pairs_set1(x_train, digit_indices)
+    digit_indices = [np.where(target_trainset == i)[0] for i in set1_digits]
+    training_pairs, training_target = create_pairs_set(input_trainset, digit_indices, 1)
 
-    digit_indices = [np.where(y_test == i)[0] for i in train_digits]
-    te_pairs, te_y = create_pairs_set1(x_test, digit_indices)
+    digit_indices = [np.where(target_testset1 == i)[0] for i in set1_digits]
+    test_pairs_set1, test_target_set1 = create_pairs_set(input_testset1, digit_indices, 1)
+    
+    digit_indices = [np.where(target_testset2 == i)[0] for i in set2_digits]
+    test_pairs_set2, test_target_set2 = create_pairs_set(input_testset2, digit_indices, 2)
+    
+    digit_indices = [np.where(target_testset3 == i)[0] for i in set3_digits]
+    test_pairs_set3, test_target_set3 = create_pairs_set(input_testset3, digit_indices, 3)
     
 
     #input_shape = (img_rows, img_cols, 1)
-    input_shape = x_train.shape[1:]
+    input_shape = input_trainset.shape[1:]
     
     # Use a CNN network as the shared network.
     cnn_network_model = build_CNN(input_shape)
@@ -267,45 +269,49 @@ def siamese_network():
     # We define a trainable model linking the two different image inputs to the distance between the processed input by the cnn network.    
     model = Model([image_vector_shape_a, image_vector_shape_b], distance)
     
-    '''
-    # 
-    model.compile(optimizer='rmsprop',
-                  loss=contrastive_loss_function)
-    '''
+
+    print("--------------------")
+    print("training_pairs: ", training_pairs.shape)
+    print("training_target: ", training_target.shape)
+    print("--------------------")
+    print("test_pairs_set1: ", test_pairs_set1.shape)
+    print("test_target_set1: ", test_target_set1.shape)
+    print("--------------------")
+    print("test_pairs_set2: ", test_pairs_set2.shape)
+    print("test_target_set2: ", test_target_set2.shape)
+    print("--------------------")
+    print("test_pairs_set3: ", test_pairs_set3.shape)
+    print("test_target_set3: ", test_target_set3.shape)
+    print("--------------------")
     
-    print("tr_pairs: ", tr_pairs.shape)
-    print("tr_y: ", tr_y.shape)
-    print("te_pairs: ", te_pairs.shape)
-    print("te_y: ", te_y.shape)
     
     # Training the model
     rms = keras.optimizers.RMSprop()
-    model.compile(loss=contrastive_loss_function, optimizer=rms, metrics=[accuracy])
+    model.compile(loss=contrastive_loss, optimizer=rms, metrics=[accuracy])
     #model.compile(loss=contrastive_loss_function, optimizer=rms)
-    model.fit([tr_pairs[:, 0], tr_pairs[:, 1]], tr_y,
+    # Only validating on the data used to fit the model.
+    model.fit([training_pairs[:, 0], training_pairs[:, 1]], training_target,
               batch_size=128,
-              epochs=epochs_siamese)
+              epochs=epochs_siamese,
+              validation_data=([test_pairs_set1[:, 0], test_pairs_set1[:, 1]], test_target_set1))
     
     # compute final accuracy on training and test sets
-    y_pred = model.predict([tr_pairs[:, 0], tr_pairs[:, 1]])
-    tr_acc = compute_accuracy(tr_y, y_pred)
-    y_pred = model.predict([te_pairs[:, 0], te_pairs[:, 1]])
-    te_acc = compute_accuracy(te_y, y_pred)
+    y_pred = model.predict([training_pairs[:, 0], training_pairs[:, 1]])
+    training_acc = compute_accuracy(training_target, y_pred)
+    print('* Accuracy on training set: %0.2f%%' % (100 * training_acc))
+    
+    y_pred = model.predict([test_pairs_set1[:, 0], test_pairs_set1[:, 1]])
+    test_acc_set1 = compute_accuracy(test_target_set1, y_pred)
+    print('* Accuracy on test set 1: %0.2f%%' % (100 * test_acc_set1))
+    
+    y_pred = model.predict([test_pairs_set2[:, 0], test_pairs_set2[:, 1]])
+    test_acc_set2 = compute_accuracy(test_target_set2, y_pred)
+    print('* Accuracy on test set 2: %0.2f%%' % (100 * test_acc_set2))
+    
+    y_pred = model.predict([test_pairs_set3[:, 0], test_pairs_set3[:, 1]])
+    test_acc_set3 = compute_accuracy(test_target_set3, y_pred)
+    print('* Accuracy on test set 3: %0.2f%%' % (100 * test_acc_set3))
 
-    print('* Accuracy on training set: %0.2f%%' % (100 * tr_acc))
-    print('* Accuracy on test set: %0.2f%%' % (100 * te_acc))
-    
-    '''
-    print("tr1_pairs: ", tr1_pairs.shape)
-    print("tr1_y: ", tr1_y.shape)
-    print("te1_pairs: ", te1_pairs.shape)
-    print("te1_y: ", te1_y.shape)
-    
-    print("tr2_pairs: ", tr2_pairs.shape)
-    print("tr2_y: ", tr2_y.shape)
-    print("te2_pairs: ", te2_pairs.shape)
-    print("te2_y: ", te2_y.shape)
-    '''
     
     # This is where we need to use the negative and positive pairs from the images based on the sequential classes as input along with the labels.
     # Number of epochs is defined in the beginning of the document as a static variable.
@@ -333,20 +339,27 @@ def create_pairs(x, digit_indices):
 
 
 
-def create_pairs_set1(x, digit_indices):
+def create_pairs_set(x, digit_indices, test_index):
     
     # Create empty list of pairs and labels to be appended
     pairs = []
     labels = []
     
+    if (test_index == 1):
+        digits = [2,3,4,5,6,7]
+    if (test_index == 2):
+        digits = [0,1,8,9]
+    if (test_index == 3):
+        digits = [0,1,2,3,4,5,6,7,8,9]
+    
     # calculate the min number of training sample of each digit in training set
-    min_sample = [len(digit_indices[d]) for d in range(len(train_digits))]
+    min_sample = [len(digit_indices[d]) for d in range(len(digits))]
     
     # calculate the number of pairs to be created
     n = min(min_sample) -1
     
     # Looping over each digits in the train_digits
-    for d in range(len(train_digits)):
+    for d in range(len(digits)):
         
         # Create n pairs of same digits and then create the same amount of pairs for the different digits
         for i in range(n):
@@ -361,8 +374,8 @@ def create_pairs_set1(x, digit_indices):
             # First create a randome integer rand falls between (1, len(train_digits))
             # let dn be (d+rand) % len(train_digit) so that dn will distinct from d 
             # and that is guaranteed to be a different digits
-            rand = random.randrange(1, len(train_digits))
-            dn = (d + rand) % len(train_digits)
+            rand = random.randrange(1, len(digits))
+            dn = (d + rand) % len(digits)
             
             # Use the dn and d to create a pair of different digits 
             # the append it to the pair list
@@ -411,5 +424,3 @@ def accuracy(y_true, y_pred):
     '''Compute classification accuracy with a fixed threshold on distances.
     '''
     return K.mean(K.equal(y_true, K.cast(y_pred < 0.5, y_true.dtype)))
-    
-    

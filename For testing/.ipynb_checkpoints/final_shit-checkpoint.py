@@ -243,6 +243,9 @@ X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2,
                                                     random_state=42)
 
 
+    
+
+
 # Extract [0, 1, 8, 9] from training set and concatenate them to the test set
 digits_to_keep = [2,3,4,5,6,7]
 digits_to_be_removed = [0, 1, 8, 9]
@@ -257,6 +260,11 @@ revised_y_train = y_train[mask]
 revised_X_test = np.append(X_test, X_train[~mask], axis = 0)
 revised_y_test = np.append(y_test, y_train[~mask], axis = 0)
 
+
+print("revised_X_train: ", revised_X_train.shape)
+print("revised_y_train: ", revised_y_train.shape)
+print("revised_X_test: ", revised_X_test.shape)
+print("revised_y_test: ", revised_y_test.shape)
 
 
 ###############################################################################
@@ -314,6 +322,10 @@ for j in range(len(digits_to_keep)):
 
 # Create testing pairs and the corresponding y value for experiment 1
 exp_1_pairs, exp_1_y = create_pairs_train(exp_1_X_test, digit_indices, digits_to_keep)
+
+print("exp_1_pairs: ", exp_1_pairs.shape)
+print("exp_1_y: ", exp_1_y.shape)
+
 """
 for i in range(5):
     display_image(exp_1_pairs[3005*i][0])

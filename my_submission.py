@@ -85,6 +85,10 @@ def save_mnist_dataset():
 
 # Function to load the mnist dataset    
 def load_mnist_dataset():
+    '''
+    Loads the local dataset
+        -returns: the dtaset
+    '''
     # Loads the dataset from the locally saved .npz file.
     with np.load('mnist_dataset.npz') as npzfile:
         x_train = npzfile['x_train']
@@ -102,6 +106,18 @@ def preprocess_mnist_dataset(x_train, y_train, x_test, y_test):
     #   ◦ the digits in [2,3,4,5,6,7] are used for training and testing
     #   ◦ the digits in [0,1,8,9] are only used for testing. None of these digits should be used during training.
     Returns a total of 4 different datasets: one for training and 3 for testing. As specified in the assignment outline.
+    
+    -args:
+        x_train     Input training data
+        y_train     Target for training data
+        x_test      Input test data
+        y_test      Target for test data
+        
+    -returns:
+        (data_train, target_train)              Dataset for training the model
+        (data_test, target_test)                Dataset 1 for testing
+        (only_test_dataset, only_test_target)   Dataset 2 for testing
+        (final_test_data, final_test_target)    Dataset 3 for testing
     '''
     
     # Using numpy module to concatenate train and test data into their own datasets. Respectively for x and y
@@ -138,6 +154,12 @@ def preprocess_mnist_dataset(x_train, y_train, x_test, y_test):
 def reshape_convert_input_data(input_data):
     '''
     Reshapes and convert data from argument input_data. The input_data is reshaped to a 4D array to be used as input for the model. The input data is converted by normalisation, from RGB 0-255 to 0-1.
+    
+    -args:
+        input_data      Data to be converted
+    
+    -returns:
+        input_data      The converted dataset
     '''
     # Gets the dimensions of the input images
     img_rows, img_cols = input_data.shape[1:3]
@@ -158,6 +180,12 @@ def build_CNN(input_shape):
     '''
     Build a CNN model to be used as a shared network in the siamese network model.
     Mainly copied from the CNN practical during week 7.
+    
+    -args:
+        input_shape     The dimenstions of the dataset to be used
+        
+    -returns:
+        cnn_model       A keras Sequential model
     '''
     
     # Initiates a sequential model
@@ -182,6 +210,12 @@ def build_CNN(input_shape):
 def euclidean_distance(vects):
     '''
     Alex
+    
+    -args:
+        vects       *DESCRIPTION*
+    
+    -returns:
+        *DESCRIPTION*
     '''
     
     # ALEX
@@ -197,6 +231,12 @@ def euclidean_distance(vects):
 def eucl_dist_output_shape(shapes):
     '''
     ALEX
+    
+    -args:
+        shapes       *DESCRIPTION*
+    
+    -returns:
+        *DESCRIPTION*
     '''
     
     # ALEX
@@ -210,6 +250,13 @@ def contrastive_loss_function(y_true, y_pred):
     '''
     Contrastive loss 
     ALEX
+    
+    -args:
+        y_true       *DESCRIPTION*
+        y_pred       *DESCRIPTION*
+    
+    -returns:
+        *DESCRIPTION*
     '''
     
     # The margin m > 0 determines how far the embeddings of a negative pair should be pushed apart.
@@ -230,6 +277,15 @@ def create_pairs_set(x, digit_indices, test_index):
     Positive and negative pair creation.
     
     Creates an array of positive and negative pairs combined with their label (1 or 0) - depending on if the two images used as input is considered to be from the same eqivalence class then they are considered a positive pair. If they are not, they are considered a negative pair.
+    
+    -args:
+        x               Dataset from where pairs are to be created.
+        digit_indices   ALEX
+        test_index      Index of 1 to 3 depending on what dataset has been provided as x
+    
+    -returns:
+        An array containing the created pairs of images
+        An array containing information if they are positive or negative.
     '''
     
     # ALEX
@@ -278,6 +334,15 @@ def create_pairs_set(x, digit_indices, test_index):
 def compute_accuracy(y_true, y_pred):
     '''
     For evaluating the prediction accuracy of the model.
+    
+    ALEX
+    
+    -args:
+        y_true      *DESCRIPTION*
+        y_pred      *DESCRIPTION*
+        
+    -returns:
+        *DECRIPTION* 
     '''
     
     # ALEX
@@ -286,8 +351,14 @@ def compute_accuracy(y_true, y_pred):
 
 def accuracy(y_true, y_pred):
     '''
-    
     ALEX
+    
+    -args:
+        y_true      *DESCRIPTION*
+        y_pred      *DESCRIPTION*
+        
+    -returns:
+        *DECRIPTION* 
     '''
     
     # ALEX

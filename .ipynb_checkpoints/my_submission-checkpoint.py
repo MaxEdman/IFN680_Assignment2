@@ -365,7 +365,7 @@ def accuracy(y_true, y_pred):
     return K.mean(K.equal(y_true, K.cast(y_pred < 0.5, y_true.dtype)))
 
 
-def siamese_network(epochs=epochs_siamese,verbose=1):
+def siamese_network(epochs=epochs_siamese,verbose=1,different_continous_test_sets=True):
     '''
     Main function to be run for the assignment.
     Will generate data based on the three specified ways of evaluation
@@ -380,8 +380,9 @@ def siamese_network(epochs=epochs_siamese,verbose=1):
         ++ The last and third dataset consists of images with digits in set - set3_digits - [0,1,2,3,4,5,6,7,8,9] - I.e. a combination of digits that the model knows AND digits that it does not know.
         
     -args:
-        epochs      Number of epochs for siamese network. Default = epochs_siamese
-        verbose     To print the process or not. Default = 1
+        epochs                          Number of epochs for siamese network. Default = epochs_siamese
+        verbose                         To print the process or not. Default = 1
+        different_continous_test_sets   If true the function build one model and validates on the different satasets. Default = True
     '''
     
     # Loads the dataset.
@@ -452,61 +453,46 @@ def siamese_network(epochs=epochs_siamese,verbose=1):
     print("--------------------")
     
     
-    
+    # This is true if runs should be validated on all the different datasets.
+    if different_continous_test_sets == True:
     # Loops through the creation, training and evalutation of the siamese network model 3 times. For each time there is a new dataset to validate the model on. In order to generate data about validation accuracy and validation loss after each epoch that is run.
-    for i in range(3):
-        
-        # Use a CNN network as the shared network.
-        cnn_network_model = build_CNN(input_shape)
+        for i in range(3):
 
-        # Initiates inputs with the same amount of slots to keep the image arrays sequences to be used as input data when processing the inputs. 
-        image_vector_shape_1 = Input(shape=input_shape)
-        image_vector_shape_2 = Input(shape=input_shape)
+            # Depending on what loop index is running different test data is used for validation.
+            if (i == 0):
+                test_pairs = test_pairs_set1
+                test_target = test_target_set1
+            if (i == 1):
+                test_pairs = test_pairs_set2
+                test_target = test_target_set2
+            if (i == 2):
+                test_pairs = test_pairs_set3
+                test_target = test_target_set3
 
-        # The CNN network model will be shared including weights
-        output_cnn_1 = cnn_network_model(image_vector_shape_1)
-        output_cnn_2 = cnn_network_model(image_vector_shape_2)
-
-        # Concatenates the two output vectors into one.
-        distance = keras.layers.Lambda(euclidean_distance, 
-                                       output_shape=eucl_dist_output_shape)([output_cnn_1, output_cnn_2])
-        
-        # We define a trainable model linking the two different image inputs to the distance between the        processed input by the cnn network.    
-        model = Model([image_vector_shape_1, image_vector_shape_2], 
-                      distance
-                     )
-        
-        # Depending on what loop index is running different test data is used for validation.
-        if (i == 0):
-            test_pairs = test_pairs_set1
-            test_target = test_target_set1
-        if (i == 1):
-            test_pairs = test_pairs_set2
-            test_target = test_target_set2
-        if (i == 2):
-            test_pairs = test_pairs_set3
-            test_target = test_target_set3
-        
-        
-        # Specifying the optimizer for the netwrok model
-        rms = keras.optimizers.RMSprop()
-        
-        # Compiles the model with the contrastive loss function.
-        model.compile(loss=contrastive_loss_function, 
-                      optimizer=rms, 
-                      metrics=[accuracy])
+            # Calls internal function to train the model and validate the model on the privous decided set.
+            model = train_model_with_validation(input_shape=input_shape,
+                                                training_pairs=training_pairs,
+                                                training_target=training_target,
+                                                test_pairs=test_pairs,
+                                                test_target=test_target,
+                                                epochs=epochs,
+                                                verbose=verbose
+                                               )
     
-        # Number of epochs is defined in the beginning of the document as a static variable.
-        # Validating and printing data using the test data with index i.
-        model.fit([training_pairs[:, 0], training_pairs[:, 1]], training_target,
-                  batch_size=128,
-                  epochs=epochs,
-                  verbose=verbose,
-                  validation_data=([test_pairs[:, 0], test_pairs[:, 1]], test_target)
-                 )
+    # If only one run is to be done and print final accuracies.
+    else:
+        model = train_model_with_validation(input_shape=input_shape,
+                                                training_pairs=training_pairs,
+                                                training_target=training_target,
+                                                test_pairs=test_pairs_set1,
+                                                test_target=test_target_set1,
+                                                epochs=epochs,
+                                                verbose=verbose
+                                               )
+                                
         
         print('-------------------------------------------------------------------------------')
-        print('----------------- THIS DATA WILL PROBABLY NOT BE USED -------------------------')
+        print('-------------------------------------------------------------------------------')
         print('Final accuracies for the different datasets using validation set number', (i+1), "after a total of", epochs_siamese, "epoch(s).")
         # Compute and print final accuracy, as percentage with 2 decimals, on training and test sets.
         y_pred = model.predict([training_pairs[:, 0], training_pairs[:, 1]])
@@ -519,7 +505,63 @@ def siamese_network(epochs=epochs_siamese,verbose=1):
         print('* Accuracy on test set 3: %0.2f%%' % (100 * compute_accuracy(test_target_set3, y_pred)))
         print('-------------------------------------------------------------------------------')
         print('-------------------------------------------------------------------------------')
+
+
+def train_model_with_validation(input_shape,
+                                training_pairs,
+                                training_target,
+                                test_pairs,
+                                test_target,
+                                epochs,
+                                verbose
+                               ):
+    '''
+    args:
+        Basically same as above.
+        
+    returns:
+        Siamese model to be avaluated.
+    '''
     
+    # Use a CNN network as the shared network.
+    cnn_network_model = build_CNN(input_shape)
+
+    # Initiates inputs with the same amount of slots to keep the image arrays sequences to be used as input data when processing the inputs. 
+    image_vector_shape_1 = Input(shape=input_shape)
+    image_vector_shape_2 = Input(shape=input_shape)
+
+    # The CNN network model will be shared including weights
+    output_cnn_1 = cnn_network_model(image_vector_shape_1)
+    output_cnn_2 = cnn_network_model(image_vector_shape_2)
+
+    # Concatenates the two output vectors into one.
+    distance = keras.layers.Lambda(euclidean_distance, 
+                                   output_shape=eucl_dist_output_shape)([output_cnn_1, output_cnn_2])
+
+    # We define a trainable model linking the two different image inputs to the distance between the        processed input by the cnn network.    
+    model = Model([image_vector_shape_1, image_vector_shape_2], 
+                  distance
+                 )
+    # Specifying the optimizer for the netwrok model
+    rms = keras.optimizers.RMSprop()
+
+    # Compiles the model with the contrastive loss function.
+    model.compile(loss=contrastive_loss_function, 
+                  optimizer=rms, 
+                  metrics=[accuracy])
+
+    # Number of epochs is defined in the beginning of the document as a static variable.
+    # Validating and printing data using the test data with index i.
+    model.fit([training_pairs[:, 0], training_pairs[:, 1]], training_target,
+              batch_size=128,
+              epochs=epochs,
+              verbose=verbose,
+              validation_data=([test_pairs[:, 0], test_pairs[:, 1]], test_target)
+             )
+
+    return model
+    
+
 def generate_accuracies_for_all_datasets():
     '''
     Function to evaluate a siamese network based on previous defined function with different amount of epochs on all 4 different data sets. 1 training set and 3 test sets.
@@ -537,6 +579,7 @@ def generate_accuracies_for_all_datasets():
 Code to be run.
 '''
 generate_accuracies_for_all_datasets()
+#siamese_network()
     
 '''
 ---------------------------------- END OF DOCUMENT ----------------------------------

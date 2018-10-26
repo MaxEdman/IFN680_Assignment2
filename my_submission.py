@@ -10,8 +10,8 @@ Due date for submission is the 28th of October @ 11.59pm
 
 This assignment is submitted by:
     Max Edman       n10156003
-    Alex Kamrath    n10039180
-    David Ding Lu   n8477621
+    Alex Kamrath    
+    David Ding Lu   
 
 '''
 
@@ -209,47 +209,66 @@ def build_CNN(input_shape):
 
 def euclidean_distance(vects):
     '''
-    Function used to calculate Euclidean distance, which is the straight-line distance between two points
-    Taken from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
+    Alex
     
     -args:
-        vects       A pair of vectors
+        vects       *DESCRIPTION*
     
     -returns:
-        The distance of the pair
+        *DESCRIPTION*
     '''
     
+    # ALEX
     x, y = vects
+    
+    # ALEX
     sum_square = K.sum(K.square(x - y), axis=1, keepdims=True)
     
+    # ALEX
     return K.sqrt(K.maximum(sum_square, K.epsilon()))
 
 
 def eucl_dist_output_shape(shapes):
     '''
-    Function used to return the Euclidean shape
-    Taken from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
+    ALEX
+    
+    -args:
+        shapes       *DESCRIPTION*
+    
+    -returns:
+        *DESCRIPTION*
     '''
     
+    # ALEX
     shape1, shape2 = shapes
     
+    # ALEX
     return (shape1[0], 1)
 
 
 def contrastive_loss_function(y_true, y_pred):
     '''
-    Contrastive loss function
-    Taken from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
-
+    Contrastive loss 
+    ALEX
+    
+    -args:
+        y_true       *DESCRIPTION*
+        y_pred       *DESCRIPTION*
+    
+    -returns:
+        *DESCRIPTION*
     '''
     
     # The margin m > 0 determines how far the embeddings of a negative pair should be pushed apart.
     m = 2 # margin # Might need to be changed and evaluated for what value the siamese network performs best.
 
+    # ALEX
     sqaure_pred = K.square(y_pred)
-
+    
+    # ALEX
     margin_square = K.square(K.maximum(m - y_pred, 0))
     
+    # ALEX
     return K.mean(y_true * sqaure_pred + (1 - y_true) * margin_square)
 
 
@@ -257,15 +276,11 @@ def create_pairs_set(x, digit_indices, test_index):
     '''
     Positive and negative pair creation.
     
-    Creates an array of positive and negative pairs combined with their label (1 or 0) - 
-    depending on if the two images used as input is considered to be from the same equivalence class 
-    then they are considered a positive pair. If they are not, they are considered a negative pair.
+    Creates an array of positive and negative pairs combined with their label (1 or 0) - depending on if the two images used as input is considered to be from the same eqivalence class then they are considered a positive pair. If they are not, they are considered a negative pair.
     
-    Adapted from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
-
     -args:
         x               Dataset from where pairs are to be created.
-        digit_indices   An array of digits 
+        digit_indices   ALEX
         test_index      Index of 1 to 3 depending on what dataset has been provided as x
     
     -returns:
@@ -273,7 +288,7 @@ def create_pairs_set(x, digit_indices, test_index):
         An array containing information if they are positive or negative.
     '''
     
-    # Creates arrays named pairs and labels
+    # ALEX
     pairs = []
     labels = []
     
@@ -285,61 +300,72 @@ def create_pairs_set(x, digit_indices, test_index):
     if (test_index == 3):
         digits = [0,1,2,3,4,5,6,7,8,9]
     
-    # Defines the minimum sample as the length of the digit_indices variable
+    # ALEX
     min_sample = [len(digit_indices[d]) for d in range(len(digits))]
     
-    # Sets n as 1 less than the smallest number in the min_sample
+    # ALEX
     n = min(min_sample) -1
     
-    # Iterates through the range of digits 
+    # ALEX
     for d in range(len(digits)):
+        
+        # ALEX
         for i in range(n):
             
-            # Assigns values z1 and z2
+            # ALEX
             z1, z2 = digit_indices[d][i], digit_indices[d][i+1]
-            # adds the z1 and z2 coordinates to the pairs array
+            # ALEX
             pairs += [[x[z1], x[z2]]]
             
-            # Gets a random number between 1 and the length of the digits array then finds the modulus of d + the new random number
-            # divided by the length of the digits array and assigns it to the variable dn
+            # ALEX
             rand = random.randrange(1, len(digits))
             dn = (d + rand) % len(digits)
             
-            # Assigns the values of z1 and z2 and adds them to the pairs array, using the dn variable
+            # ALEX
             z1, z2 = digit_indices[d][i], digit_indices[dn][i]
             pairs += [[x[z1], x[z2]]]
             
-            # Adds the coordinates 1,0 to the labels array
+            # ALEX
             labels += [1, 0]
-    # Returns 2 arrays
+    # ALEX
     return np.array(pairs), np.array(labels)
 
 
 def compute_accuracy(y_true, y_pred):
     '''
     For evaluating the prediction accuracy of the model.
-    Taken from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
+    
+    ALEX
+    
+    -args:
+        y_true      *DESCRIPTION*
+        y_pred      *DESCRIPTION*
         
     -returns:
-        Accuracy
+        *DECRIPTION* 
     '''
     
-
+    # ALEX
     pred = y_pred.ravel() < 0.5
     return np.mean(pred == y_true)
 
 def accuracy(y_true, y_pred):
     '''
-    Computes classification accuracy with a fixed threshold on distances.
-    Taken from https://github.com/keras-team/keras/blob/master/examples/mnist_siamese.py
+    ALEX
     
-
+    -args:
+        y_true      *DESCRIPTION*
+        y_pred      *DESCRIPTION*
+        
+    -returns:
+        *DECRIPTION* 
     '''
     
+    # ALEX
     return K.mean(K.equal(y_true, K.cast(y_pred < 0.5, y_true.dtype)))
 
 
-def siamese_network():
+def siamese_network(epochs=epochs_siamese,verbose=1):
     '''
     Main function to be run for the assignment.
     Will generate data based on the three specified ways of evaluation
@@ -352,12 +378,16 @@ def siamese_network():
         ++ The first dataset consists of images with digits in set - set1_digits - [2,3,4,5,6,7] - I.e. the same as the model has been trained on.
         ++ The second dataset consists of images with digits in set - set2_digits - [0,1,8,9] - I.e. digits that are not know to the model.
         ++ The last and third dataset consists of images with digits in set - set3_digits - [0,1,2,3,4,5,6,7,8,9] - I.e. a combination of digits that the model knows AND digits that it does not know.
+        
+    -args:
+        epochs      Number of epochs for siamese network. Default = epochs_siamese
+        verbose     To print the process or not. Default = 1
     '''
     
     # Loads the dataset.
     x_train, y_train, x_test, y_test = load_mnist_dataset()
     
-    # Prepocesses the data into 4 different datasets - Input is the image data from MNIST and target is the digit showed in the image.
+    # Prepocesses the data into 4 different datasets - Input is the image data från MNIST and target is the digit showed in the image.
     (input_trainset, target_trainset), (input_testset1, target_testset1), (input_testset2, target_testset2), (input_testset3, target_testset3) = preprocess_mnist_dataset(x_train, y_train, x_test, y_test)
     
     # Reshape and normalise the input data
@@ -470,7 +500,8 @@ def siamese_network():
         # Validating and printing data using the test data with index i.
         model.fit([training_pairs[:, 0], training_pairs[:, 1]], training_target,
                   batch_size=128,
-                  epochs=epochs_siamese,
+                  epochs=epochs,
+                  verbose=verbose,
                   validation_data=([test_pairs[:, 0], test_pairs[:, 1]], test_target)
                  )
         
@@ -489,7 +520,23 @@ def siamese_network():
         print('-------------------------------------------------------------------------------')
         print('-------------------------------------------------------------------------------')
     
+def generate_accuracies_for_all_datasets():
+    '''
+    Function to evaluate a siamese network based on previous defined function with different amount of epochs on all 4 different data sets. 1 training set and 3 test sets.
+    '''
+    
+    # Defining amount of epochs to be run
+    epochs_arr = [5,10,15,20,25]
+    
+    # Loops through the epochs array and runs the function. Only printing the final results.
+    for epochs in epochs_arr:
+        siamese_network(epochs=epochs, verbose=1)
+    
 
+'''
+Code to be run.
+'''
+generate_accuracies_for_all_datasets()
     
 '''
 ---------------------------------- END OF DOCUMENT ----------------------------------

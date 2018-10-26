@@ -365,7 +365,7 @@ def accuracy(y_true, y_pred):
     return K.mean(K.equal(y_true, K.cast(y_pred < 0.5, y_true.dtype)))
 
 
-def siamese_network():
+def siamese_network(epochs=epochs_siamese,verbose=1):
     '''
     Main function to be run for the assignment.
     Will generate data based on the three specified ways of evaluation
@@ -378,6 +378,10 @@ def siamese_network():
         ++ The first dataset consists of images with digits in set - set1_digits - [2,3,4,5,6,7] - I.e. the same as the model has been trained on.
         ++ The second dataset consists of images with digits in set - set2_digits - [0,1,8,9] - I.e. digits that are not know to the model.
         ++ The last and third dataset consists of images with digits in set - set3_digits - [0,1,2,3,4,5,6,7,8,9] - I.e. a combination of digits that the model knows AND digits that it does not know.
+        
+    -args:
+        epochs      Number of epochs for siamese network. Default = epochs_siamese
+        verbose     To print the process or not. Default = 1
     '''
     
     # Loads the dataset.
@@ -496,7 +500,8 @@ def siamese_network():
         # Validating and printing data using the test data with index i.
         model.fit([training_pairs[:, 0], training_pairs[:, 1]], training_target,
                   batch_size=128,
-                  epochs=epochs_siamese,
+                  epochs=epochs,
+                  verbose=verbose,
                   validation_data=([test_pairs[:, 0], test_pairs[:, 1]], test_target)
                  )
         
@@ -515,7 +520,23 @@ def siamese_network():
         print('-------------------------------------------------------------------------------')
         print('-------------------------------------------------------------------------------')
     
+def generate_accuracies_for_all_datasets():
+    '''
+    Function to evaluate a siamese network based on previous defined function with different amount of epochs on all 4 different data sets. 1 training set and 3 test sets.
+    '''
+    
+    # Defining amount of epochs to be run
+    epochs_arr = [5,10,15,20,25]
+    
+    # Loops through the epochs array and runs the function. Only printing the final results.
+    for epochs in epochs_arr:
+        siamese_network(epochs=epochs, verbose=1)
+    
 
+'''
+Code to be run.
+'''
+generate_accuracies_for_all_datasets()
     
 '''
 ---------------------------------- END OF DOCUMENT ----------------------------------
